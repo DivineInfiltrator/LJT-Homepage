@@ -28,20 +28,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
-      - name: Diagnose and enable Pages administration
-        run: |
-          TOKEN="${{ github.token }}"
-          REPO="${{ github.repository }}"
-          API="https://api.github.com/repos/$REPO"
-          HDR=(-H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28")
-          echo "== GET /pages (current token) =="
-          curl -s -w "\nHTTP %{http_code}\n" "${HDR[@]}" "$API/pages" || true
-          echo "== GET /actions/permissions/workflow =="
-          curl -s -w "\nHTTP %{http_code}\n" "${HDR[@]}" "$API/actions/permissions/workflow" || true
-          echo "== PUT /actions/permissions/workflow -> write default =="
-          curl -s -w "\nHTTP %{http_code}\n" -X PUT "${HDR[@]}" "$API/actions/permissions/workflow" -d '{"default_workflow_permissions":"write","can_approve_pull_request_reviews":true}' || true
-          echo "== POST /pages (build_type=workflow) =="
-          curl -s -w "\nHTTP %{http_code}\n" -X POST "${HDR[@]}" "$API/pages" -d '{"build_type":"workflow"}' || true
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
@@ -61,6 +47,10 @@ jobs:
         id: pages
         uses: actions/configure-pages@v6.0.0
         with:
+          # Set to true so the workflow can enable Pages automatically when
+          # GITHUB_TOKEN permissions allow it. On forked repositories GitHub
+          # may require Pages to be enabled once in Settings -> Pages first
+          # (Source: GitHub Actions); after that this workflow deploys on every run.
           enablement: true
       - name: Build with Jekyll
         # Outputs to the './_site' directory by default
